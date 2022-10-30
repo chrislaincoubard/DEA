@@ -82,7 +82,7 @@ def ratio(data_reel, data_UMAP):
     uni_test = stats.kstest(liste_ratio, stats.norm.cdf)
     mean = sum(liste_ratio) / len(liste_ratio)
     ecart_type = np.std(liste_ratio)
-    return uni_test, ecart_type, mean
+    return uni_test[1], ecart_type, mean
 
 #### Lancement Umap sans graphique ####
 # params = [NNeighbors, MinDist, NComponents]
@@ -108,7 +108,7 @@ with open('umap_benchmark_ratio.csv', mode='w') as umap_benchmark:
                 prog_cpu_time = end_cpu_time - start_cpu_time
                 umap_benchmark_writer.writerow(
                     [nb_row, nb_column, param_value.value, MinDist.first_default.value, NComponents.second_default.value,
-                     deformation,
+                     deformation[0],
                      prog_cpu_time,
                      ratio_stats[0], ratio_stats[1], ratio_stats[2]])
 
@@ -122,7 +122,7 @@ with open('umap_benchmark_ratio.csv', mode='w') as umap_benchmark:
                 prog_cpu_time = end_cpu_time - start_cpu_time
                 umap_benchmark_writer.writerow(
                     [nb_row, nb_column, NNeighbors.second_default.value, param_value.value,
-                     NComponents.second_default.value, deformation,
+                     NComponents.second_default.value, deformation[0],
                      prog_cpu_time,
                      ratio_stats[0], ratio_stats[1], ratio_stats[2]])
 
@@ -135,6 +135,6 @@ with open('umap_benchmark_ratio.csv', mode='w') as umap_benchmark:
                 prog_cpu_time = end_cpu_time - start_cpu_time
                 umap_benchmark_writer.writerow(
                     [nb_row, nb_column, NNeighbors.second_default.value, MinDist.first_default.value, param_value.value,
-                     deformation,
+                     deformation[0],
                      prog_cpu_time,
                      ratio_stats[0], ratio_stats[1], ratio_stats[2]])
