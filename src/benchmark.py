@@ -10,6 +10,7 @@ import umap.umap_ as umap
 from scipy.spatial import distance
 from sklearn.datasets import make_blobs
 from scipy import stats
+from numpy.random import uniform
 
 np.random.seed(10)
 
@@ -79,7 +80,10 @@ def ratio(data_reel, data_UMAP):
             liste_ratio.append(reel / umap_data)
         except ZeroDivisionError:
             continue
-    uni_test = stats.kstest(liste_ratio, stats.norm.cdf)
+    mini = min(liste_ratio)
+    maxi = max(liste_ratio)
+    uni = uniform(mini, maxi, 1000)
+    uni_test = stats.kstest(liste_ratio, uni)
     mean = sum(liste_ratio) / len(liste_ratio)
     ecart_type = np.std(liste_ratio)
     return uni_test[1], ecart_type, mean
