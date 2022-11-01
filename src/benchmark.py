@@ -12,6 +12,7 @@ from sklearn.datasets import make_blobs
 from scipy import stats
 from numpy.random import uniform
 from scipy.stats import shapiro
+from sklearn.neighbors import NearestNeighbors
 
 np.random.seed(10)
 
@@ -106,6 +107,22 @@ def ratio(data_reel, data_UMAP):
     return uni_test[1], ecart_type, mean, norm_test[1]
 
 
+def calcul_jaccard_similarity(umap_data, n_nbrs):
+    neighbors_umap_data = NearestNeighbors(n_neighbors=n_nbrs, algorithm='ball_tree').fit(umap_data)
+    distances_umap_data, indices_umap_data = neighbors_umap_data.kneighbors(umap_data)
+    neighbors_true_data = NearestNeighbors(n_neighbors=n_nbrs, algorithm='ball_tree').fit(X_data)
+    distances_true_data, indices_true_data = neighbors_true_data.kneighbors(X_data)
+
+    jaccard = 0
+    for point in range(len(X_data)):
+        try:
+            jaccard += (len(set(indices_true_data[point]) & set(indices_umap_data[point])) / len(
+                set(indices_true_data[point]) | set(indices_umap_data[point])))
+        except ZeroDivisionError:
+            continue
+    return jaccard
+
+
 #### Lancement Umap sans graphique ####
 # params = [NNeighbors, MinDist, NComponents]
 nb_columns_test = [5, 15, 25, 50, 100]
@@ -118,7 +135,7 @@ with open('umap_benchmark_ratio.csv', mode='w') as umap_benchmark:
          "std UMAP", 'deformation', 'cpu_time',
          "p-value uniformité global", "p-value normalité global", "std ratio global", " mean ratio global",
          "p-value uni big", "p-value norm big", "mean ratio big", "std ratio big",
-         "p-value uni small", "p-value norm small", "mean ratio small", "std ratio small"
+         "p-value uni small", "p-value norm small", "mean ratio small", "std ratio small", "jaccard similarity"
          ])
     for nb_row in nb_rows_test:
         for nb_column in nb_columns_test:
@@ -132,6 +149,7 @@ with open('umap_benchmark_ratio.csv', mode='w') as umap_benchmark:
                 Xtrem_data = draw_umap(param_value.value, MinDist.first_default.value, NComponents.second_default.value)
                 end_cpu_time = time.process_time()
                 deformation = calcul_deformation(Xtrem_data, X_data)
+                jaccard = calcul_jaccard_similarity(Xtrem_data, param_value.value)
                 mean_reel = sum(deformation[1]) / len(deformation[2])
                 mean_UMAP = sum(deformation[2]) / len(deformation[2])
                 sep_dist = separate_distance(deformation[1], deformation[2])
@@ -149,7 +167,7 @@ with open('umap_benchmark_ratio.csv', mode='w') as umap_benchmark:
                      prog_cpu_time,
                      ratio_all[0], ratio_all[3], ratio_all[1], ratio_all[2],
                      ratio_big[0], ratio_big[3], ratio_big[1], ratio_big[2],
-                     ratio_small[0], ratio_small[3], ratio_small[1], ratio_small[2]])
+                     ratio_small[0], ratio_small[3], ratio_small[1], ratio_small[2]], jaccard)
                 print("Done for this one")
 
             for param_value in MinDist:
@@ -158,6 +176,7 @@ with open('umap_benchmark_ratio.csv', mode='w') as umap_benchmark:
                                        NComponents.second_default.value)
                 end_cpu_time = time.process_time()
                 deformation = calcul_deformation(Xtrem_data, X_data)
+                jaccard = calcul_jaccard_similarity(Xtrem_data, NNeighbors.second_default.value)
                 mean_reel = sum(deformation[1]) / len(deformation[2])
                 mean_UMAP = sum(deformation[2]) / len(deformation[2])
                 std_reel = np.std(np.array(deformation[1]))
@@ -174,7 +193,7 @@ with open('umap_benchmark_ratio.csv', mode='w') as umap_benchmark:
                      prog_cpu_time,
                      ratio_all[0], ratio_all[3], ratio_all[1], ratio_all[2],
                      ratio_big[0], ratio_big[3], ratio_big[1], ratio_big[2],
-                     ratio_small[0], ratio_small[3], ratio_small[1], ratio_small[2]
+                     ratio_small[0], ratio_small[3], ratio_small[1], ratio_small[2], jaccard
                      ])
                 print("Done for this one")
 
@@ -183,6 +202,7 @@ with open('umap_benchmark_ratio.csv', mode='w') as umap_benchmark:
                 Xtrem_data = draw_umap(NNeighbors.second_default.value, MinDist.first_default.value, param_value.value)
                 end_cpu_time = time.process_time()
                 deformation = calcul_deformation(Xtrem_data, X_data)
+                jaccard = calcul_jaccard_similarity(Xtrem_data, NNeighbors.second_default.value)
                 mean_reel = sum(deformation[1]) / len(deformation[2])
                 mean_UMAP = sum(deformation[2]) / len(deformation[2])
                 std_reel = np.std(np.array(deformation[1]))
@@ -198,6 +218,6 @@ with open('umap_benchmark_ratio.csv', mode='w') as umap_benchmark:
                      prog_cpu_time,
                      ratio_all[0], ratio_all[3], ratio_all[1], ratio_all[2],
                      ratio_big[0], ratio_big[3], ratio_big[1], ratio_big[2],
-                     ratio_small[0], ratio_small[3], ratio_small[1], ratio_small[2]
+                     ratio_small[0], ratio_small[3], ratio_small[1], ratio_small[2], jaccard
                      ])
                 print("Done for this one")
