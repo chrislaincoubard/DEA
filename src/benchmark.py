@@ -38,14 +38,14 @@ class NComponents(Enum):
 metrics = ["euclidean", "manhattan", "mahalanobis", "correlation"]
 
 
-def draw_umap(n_neighbors=15, min_dist=0.1, n_components=2, metric='euclidean', title=''):
+def draw_umap(data, n_neighbors=15, min_dist=0.1, n_components=2, metric='euclidean', title=''):
     fit = umap.UMAP(
         n_neighbors=n_neighbors,
         min_dist=min_dist,
         n_components=n_components,
         metric=metric
     )
-    u = fit.fit_transform(X_data)
+    u = fit.fit_transform(data)
 
     # plt.scatter(u[:, 0], u[:, 1], c=Y_data)
     # plt.title('UMAP embedding of random colours')
@@ -57,24 +57,19 @@ sns.set(style='white', context='poster', rc={'figure.figsize': (14, 10)})
 
 
 #### Création des listes de distance pré et post déformation ####
+
+def calcul_distances(data) :
+    distances = []
+    for i, j in list(itertools.combinations(data, 2)):
+        dist = distance.euclidean(i,j)
+        distances.append(dist)
+    return distances
+
 def calcul_deformation(UMAP_data, real_data):
-    pre_data = []
-
-    post_data = []
-
     deformation = 0
-
-    for i, j in list(itertools.combinations(real_data, 2)):
-        dist_reel = distance.euclidean(i, j)
-        pre_data.append(dist_reel)
-
-    for i, j in list(itertools.combinations(UMAP_data, 2)):
-        dist_UMAP = distance.euclidean(i, j)
-        post_data.append(dist_UMAP)
-
-    for i in range(len(pre_data)):
-        deformation += 1 / pow(pre_data[i], 2) * pow(pre_data[i] - post_data[i], 2)
-    return deformation, pre_data, post_data
+    for i in range(len(real_data)):
+        deformation += 1 / pow(real_data[i], 2) * pow(real_data[i] - UMAP_data[i], 2)
+    return deformation
 
 
 def separate_distance(dist_reel, dist_UMAP):
@@ -106,7 +101,6 @@ def ratio(data_reel, data_UMAP):
     ecart_type = np.std(liste_ratio)
     return uni_test[1], ecart_type, mean, norm_test[1]
 
-
 def calcul_jaccard_similarity(umap_data, n_nbrs):
     neighbors_umap_data = NearestNeighbors(n_neighbors=n_nbrs, algorithm='ball_tree').fit(umap_data)
     distances_umap_data, indices_umap_data = neighbors_umap_data.kneighbors(umap_data)
@@ -122,11 +116,10 @@ def calcul_jaccard_similarity(umap_data, n_nbrs):
             continue
     return jaccard
 
-
 #### Lancement Umap sans graphique ####
 # params = [NNeighbors, MinDist, NComponents]
 nb_columns_test = [5, 15, 25, 50, 100]
-nb_rows_test = [100, 500, 1000, 5000]
+nb_rows_test = [100, 500, 1000]
 
 with open('umap_benchmark_ratio.csv', mode='w') as umap_benchmark:
     umap_benchmark_writer = csv.writer(umap_benchmark, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
@@ -135,7 +128,8 @@ with open('umap_benchmark_ratio.csv', mode='w') as umap_benchmark:
          "std UMAP", 'deformation', 'cpu_time',
          "p-value uniformité global", "p-value normalité global", "std ratio global", " mean ratio global",
          "p-value uni big", "p-value norm big", "mean ratio big", "std ratio big",
-         "p-value uni small", "p-value norm small", "mean ratio small", "std ratio small", "jaccard similarity"
+         "p-value uni small", "p-value norm small", "mean ratio small", "std ratio small",
+         "jaccard similarity"
          ])
     for nb_row in nb_rows_test:
         for nb_column in nb_columns_test:
@@ -144,18 +138,21 @@ with open('umap_benchmark_ratio.csv', mode='w') as umap_benchmark:
             X_data, Y_data = make_blobs(n_samples=nb_row, n_features=nb_column, centers=3, shuffle=True,
                                         random_state=10)
             #### umap ####
+            dist_reel = calcul_distances(X_data)
             for param_value in NNeighbors:
+                print(f"Start for this one : rows : {nb_row}, cols {nb_column}, param_value {param_value.value}")
                 start_cpu_time = time.process_time()
-                Xtrem_data = draw_umap(param_value.value, MinDist.first_default.value, NComponents.second_default.value)
+                Xtrem_data = draw_umap(X_data,param_value.value, MinDist.first_default.value, NComponents.second_default.value)
                 end_cpu_time = time.process_time()
-                deformation = calcul_deformation(Xtrem_data, X_data)
+                dist_UMAP = calcul_distances(Xtrem_data)
+                deformation = calcul_deformation(dist_UMAP, dist_reel)
                 jaccard = calcul_jaccard_similarity(Xtrem_data, param_value.value)
-                mean_reel = sum(deformation[1]) / len(deformation[2])
-                mean_UMAP = sum(deformation[2]) / len(deformation[2])
-                sep_dist = separate_distance(deformation[1], deformation[2])
-                std_reel = np.std(np.array(deformation[1]))
-                std_UMAP = np.std(np.array(deformation[2]))
-                ratio_all = ratio(deformation[1], deformation[2])
+                mean_reel = sum(dist_reel) / len(dist_reel)
+                mean_UMAP = sum(dist_UMAP) / len(dist_UMAP)
+                sep_dist = separate_distance(dist_reel, dist_UMAP)
+                std_reel = np.std(np.array(dist_reel))
+                std_UMAP = np.std(np.array(dist_UMAP))
+                ratio_all = ratio(dist_reel, dist_UMAP)
                 ratio_big = ratio(sep_dist[0], sep_dist[1])
                 ratio_small = ratio(sep_dist[2], sep_dist[3])
                 prog_cpu_time = end_cpu_time - start_cpu_time
@@ -163,61 +160,68 @@ with open('umap_benchmark_ratio.csv', mode='w') as umap_benchmark:
                     [nb_row, nb_column, param_value.value, MinDist.first_default.value,
                      NComponents.second_default.value,
                      mean_reel, mean_UMAP, std_reel, std_UMAP,
-                     deformation[0],
+                     deformation,
                      prog_cpu_time,
                      ratio_all[0], ratio_all[3], ratio_all[1], ratio_all[2],
                      ratio_big[0], ratio_big[3], ratio_big[1], ratio_big[2],
-                     ratio_small[0], ratio_small[3], ratio_small[1], ratio_small[2]], jaccard)
-                print("Done for this one")
+                     ratio_small[0], ratio_small[3], ratio_small[1], ratio_small[2],
+                     jaccard])
+                print(f"Done for this one : rows : {nb_row}, cols {nb_column}, param_value {param_value.value}")
 
             for param_value in MinDist:
+                print(f"Start for this one : rows : {nb_row}, cols {nb_column}, param_value {param_value.value}")
                 start_cpu_time = time.process_time()
-                Xtrem_data = draw_umap(NNeighbors.second_default.value, param_value.value,
-                                       NComponents.second_default.value)
+                Xtrem_data = draw_umap(X_data,NNeighbors.second_default.value, param_value.value, NComponents.second_default.value)
                 end_cpu_time = time.process_time()
-                deformation = calcul_deformation(Xtrem_data, X_data)
-                jaccard = calcul_jaccard_similarity(Xtrem_data, NNeighbors.second_default.value)
-                mean_reel = sum(deformation[1]) / len(deformation[2])
-                mean_UMAP = sum(deformation[2]) / len(deformation[2])
-                std_reel = np.std(np.array(deformation[1]))
-                std_UMAP = np.std(np.array(deformation[2]))
-                ratio_all = ratio(deformation[1], deformation[2])
+                dist_UMAP = calcul_distances(Xtrem_data)
+                deformation = calcul_deformation(dist_UMAP, dist_reel)
+                jaccard = calcul_jaccard_similarity(Xtrem_data, param_value.value)
+                mean_reel = sum(dist_reel) / len(dist_reel)
+                mean_UMAP = sum(dist_UMAP) / len(dist_UMAP)
+                sep_dist = separate_distance(dist_reel, dist_UMAP)
+                std_reel = np.std(np.array(dist_reel))
+                std_UMAP = np.std(np.array(dist_UMAP))
+                ratio_all = ratio(dist_reel, dist_UMAP)
                 ratio_big = ratio(sep_dist[0], sep_dist[1])
                 ratio_small = ratio(sep_dist[2], sep_dist[3])
                 prog_cpu_time = end_cpu_time - start_cpu_time
                 umap_benchmark_writer.writerow(
-                    [nb_row, nb_column, NNeighbors.second_default.value, param_value.value,
+                    [nb_row, nb_column, param_value.value, MinDist.first_default.value,
                      NComponents.second_default.value,
                      mean_reel, mean_UMAP, std_reel, std_UMAP,
-                     deformation[0],
+                     deformation,
                      prog_cpu_time,
                      ratio_all[0], ratio_all[3], ratio_all[1], ratio_all[2],
                      ratio_big[0], ratio_big[3], ratio_big[1], ratio_big[2],
-                     ratio_small[0], ratio_small[3], ratio_small[1], ratio_small[2], jaccard
-                     ])
-                print("Done for this one")
+                     ratio_small[0], ratio_small[3], ratio_small[1], ratio_small[2],
+                     jaccard])
+                print(f"Done for this one : rows : {nb_row}, cols {nb_column}, param_value {param_value.value}")
 
             for param_value in NComponents:
+                print(f"Start for this one : rows : {nb_row}, cols {nb_column}, param_value {param_value.value}")
                 start_cpu_time = time.process_time()
-                Xtrem_data = draw_umap(NNeighbors.second_default.value, MinDist.first_default.value, param_value.value)
+                Xtrem_data = draw_umap(X_data,NNeighbors.second_default.value, MinDist.first_default.value, param_value.value)
                 end_cpu_time = time.process_time()
-                deformation = calcul_deformation(Xtrem_data, X_data)
-                jaccard = calcul_jaccard_similarity(Xtrem_data, NNeighbors.second_default.value)
-                mean_reel = sum(deformation[1]) / len(deformation[2])
-                mean_UMAP = sum(deformation[2]) / len(deformation[2])
-                std_reel = np.std(np.array(deformation[1]))
-                std_UMAP = np.std(np.array(deformation[2]))
-                ratio_all = ratio(deformation[1], deformation[2])
+                dist_UMAP = calcul_distances(Xtrem_data)
+                deformation = calcul_deformation(dist_UMAP, dist_reel)
+                jaccard = calcul_jaccard_similarity(Xtrem_data, param_value.value)
+                mean_reel = sum(dist_reel) / len(dist_reel)
+                mean_UMAP = sum(dist_UMAP) / len(dist_UMAP)
+                sep_dist = separate_distance(dist_reel, dist_UMAP)
+                std_reel = np.std(np.array(dist_reel))
+                std_UMAP = np.std(np.array(dist_UMAP))
+                ratio_all = ratio(dist_reel, dist_UMAP)
                 ratio_big = ratio(sep_dist[0], sep_dist[1])
                 ratio_small = ratio(sep_dist[2], sep_dist[3])
                 prog_cpu_time = end_cpu_time - start_cpu_time
                 umap_benchmark_writer.writerow(
-                    [nb_row, nb_column, NNeighbors.second_default.value, MinDist.first_default.value, param_value.value,
+                    [nb_row, nb_column, param_value.value, MinDist.first_default.value,
+                     NComponents.second_default.value,
                      mean_reel, mean_UMAP, std_reel, std_UMAP,
-                     deformation[0],
+                     deformation,
                      prog_cpu_time,
                      ratio_all[0], ratio_all[3], ratio_all[1], ratio_all[2],
                      ratio_big[0], ratio_big[3], ratio_big[1], ratio_big[2],
-                     ratio_small[0], ratio_small[3], ratio_small[1], ratio_small[2], jaccard
-                     ])
-                print("Done for this one")
+                     ratio_small[0], ratio_small[3], ratio_small[1], ratio_small[2],
+                     jaccard])
+                print(f"Done for this one : rows : {nb_row}, cols {nb_column}, param_value {param_value.value}")
