@@ -108,7 +108,7 @@ CV_ratio_small = []
 
 
 for index, row in X.iterrows(): #iterate over rows
-        CV.append((row["moyenne reel"] / row["std reel"]) * 100)
+        CV.append((row["mean ratio global"] / row["std ratio global"]) * 100)
         CV_ratio_big.append((row["mean ratio big"] / row["std ratio big"]) * 100)
         CV_ratio_small.append((row["mean ratio small"] / row["std ratio small"]) * 100)
 
