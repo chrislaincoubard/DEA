@@ -100,13 +100,13 @@ fig_3D.show()
 '''
 ########################################################################
 # Calcul du coefficient de variation
-
 CV = []
 CV_ratio_big = []
 CV_ratio_small = []
 deformation = []
 cpu_time = []
 jaccard = []
+nb_rows = []
 
 for index, row in X.iterrows():  # iterate over rows
     CV.append((row["mean ratio global"] / row["std ratio global"]) * 100)
@@ -116,30 +116,27 @@ for index, row in X.iterrows():  # iterate over rows
     cpu_time.append(row["cpu_time"])
     jaccard.append(row["jaccard similarity"])
 
-corresp_index_conditions = {}
-for index, value in enumerate(CV_ratio_big):
-    corresp_index_conditions[value] = index
-
 # ratio all distances
-fig_CV_all = px.bar(CV, labels={"value": "ratio all (%)"})
+fig_CV_all = px.bar(CV, labels={"value": "Ratio Toutes Distances (%)", "index": "Conditions"})
 fig_CV_all.show()
 
 # ratio big distances
-fig_CV_big = px.bar(CV_ratio_big, labels={"value": "ratio big (%)"})
+fig_CV_big = px.bar(CV_ratio_big, labels={"value": "Ratio Grandes Distances (%)", "index": "Conditions"})
 fig_CV_big.show()
 
 # ratio small distances
-fig_CV_small = px.bar(CV_ratio_small, labels={"value": "ratio small (%)"})
+fig_CV_small = px.bar(CV_ratio_small, labels={"value": "Ratio Petites Distances (%)", "index": "Conditions"})
 fig_CV_small.show()
 
 # deformation
-fig_deformation = px.bar(deformation, labels={"value": "deformation"})
+fig_deformation = px.bar(deformation, labels={"value": "Deformation", "index": "Conditions"})
 fig_deformation.show()
 
 # ratio cpu_time
-fig_CV_cpu = px.bar(cpu_time, labels={"value": "cpu_time"})
+fig_CV_cpu = px.bar(cpu_time, labels={"value": "Temps Cpu", "index": "Conditions"})
 fig_CV_cpu.show()
 
 # ratio jaccard
-fig_CV_jaccard = px.bar(jaccard, labels={"value": "jaccard similarity"})
+fig_CV_jaccard = px.bar(jaccard, labels={"value": "Coefficient Similarité Jaccard", "index": "Conditions"})
 fig_CV_jaccard.show()
+
