@@ -13,8 +13,7 @@ for index, row in df.iterrows():
 X = df.drop(["nb_lines", "nb_rows", "n_neighbors", "min_dist", "n_components"],
             axis=1)  # suppr les labels pour avoir que les data
 
-
-
+'''
 #Essai avec toutes les données
 x = X.iloc[:, :].values
 print(x)
@@ -98,26 +97,49 @@ fig_3D = px.scatter_3d(principal_3DDf, x="principal component 1", y="principal c
                        color=Y, labels={'color': 'Sous type'})
 fig_3D.show()
 
-
+'''
 ########################################################################
-#Calcul du coefficient de variation
+# Calcul du coefficient de variation
 
 CV = []
 CV_ratio_big = []
 CV_ratio_small = []
+deformation = []
+cpu_time = []
+jaccard = []
 
-
-for index, row in X.iterrows(): #iterate over rows
-        CV.append((row["mean ratio global"] / row["std ratio global"]) * 100)
-        CV_ratio_big.append((row["mean ratio big"] / row["std ratio big"]) * 100)
-        CV_ratio_small.append((row["mean ratio small"] / row["std ratio small"]) * 100)
-
+for index, row in X.iterrows():  # iterate over rows
+    CV.append((row["mean ratio global"] / row["std ratio global"]) * 100)
+    CV_ratio_big.append((row["mean ratio big"] / row["std ratio big"]) * 100)
+    CV_ratio_small.append((row["mean ratio small"] / row["std ratio small"]) * 100)
+    deformation.append(row["deformation"])
+    cpu_time.append(row["cpu_time"])
+    jaccard.append(row["jaccard similarity"])
 
 corresp_index_conditions = {}
 for index, value in enumerate(CV_ratio_big):
     corresp_index_conditions[value] = index
 
-fig_CV_big = plt.bar(list(corresp_index_conditions.values()), CV_ratio_big)
+# ratio all distances
+fig_CV_all = px.bar(CV, labels={"value": "ratio all (%)"})
+fig_CV_all.show()
 
-plt.show()
+# ratio big distances
+fig_CV_big = px.bar(CV_ratio_big, labels={"value": "ratio big (%)"})
+fig_CV_big.show()
 
+# ratio small distances
+fig_CV_small = px.bar(CV_ratio_small, labels={"value": "ratio small (%)"})
+fig_CV_small.show()
+
+# deformation
+fig_deformation = px.bar(deformation, labels={"value": "deformation"})
+fig_deformation.show()
+
+# ratio cpu_time
+fig_CV_cpu = px.bar(cpu_time, labels={"value": "cpu_time"})
+fig_CV_cpu.show()
+
+# ratio jaccard
+fig_CV_jaccard = px.bar(jaccard, labels={"value": "jaccard similarity"})
+fig_CV_jaccard.show()
