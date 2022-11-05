@@ -3,6 +3,7 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 import plotly.express as px
 import numpy as np
+import matplotlib.pyplot as plt
 
 df = pd.read_csv('umap_stats.csv')
 Y = []  # liste des labels
