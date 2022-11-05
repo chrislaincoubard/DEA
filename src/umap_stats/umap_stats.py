@@ -96,3 +96,27 @@ print('Explained variation per principal component 3D: {}'.format(pca_3Ddf.expla
 fig_3D = px.scatter_3d(principal_3DDf, x="principal component 1", y="principal component 2", z="principal component 3",
                        color=Y, labels={'color': 'Sous type'})
 fig_3D.show()
+
+
+########################################################################
+#Calcul du coefficient de variation
+
+CV = []
+CV_ratio_big = []
+CV_ratio_small = []
+
+
+for index, row in X.iterrows(): #iterate over rows
+        CV.append((row["moyenne reel"] / row["std reel"]) * 100)
+        CV_ratio_big.append((row["mean ratio big"] / row["std ratio big"]) * 100)
+        CV_ratio_small.append((row["mean ratio small"] / row["std ratio small"]) * 100)
+
+
+corresp_index_conditions = {}
+for index, value in enumerate(CV_ratio_big):
+    corresp_index_conditions[value] = index
+
+fig_CV_big = plt.bar(list(corresp_index_conditions.values()), CV_ratio_big)
+
+plt.show()
+
